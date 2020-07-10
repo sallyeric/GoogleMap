@@ -7,6 +7,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -37,14 +39,27 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
         implements OnMapReadyCallback ,
         ActivityCompat.OnRequestPermissionsResultCallback{
+
+    ////////////////////////////////Firebase///////////////////////////////////
+
+    private DatabaseReference mPostReference;
+    String userInfo="";
+    //double userLong=0.0F;
+    //double userLat=0.0F;
+
+    ///////////////////////////////////////////////////////////////////////////
 
     private GoogleMap mMap;
     private Marker currentMarker = null;
@@ -80,6 +95,18 @@ public class MainActivity extends AppCompatActivity
 
         setContentView(R.layout.activity_main);
 
+    ///////////////////////////사용자 정보////////////////////////////
+
+        AccountManager am = AccountManager.get(this); // "this" references the current Context
+        Account[] accounts = am.getAccountsByType("com.google");
+        //Log.d("UserInformation",accounts.toString());
+        userInfo=accounts.toString();
+
+        mPostReference= FirebaseDatabase.getInstance().getReference();
+        postFirebaseUserInfo(true);
+
+     ////////////////////////////////////////////////////////////////
+
         mLayout = findViewById(R.id.layout_main);
 
         locationRequest = new LocationRequest()
@@ -99,6 +126,7 @@ public class MainActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
+
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
@@ -183,6 +211,14 @@ public class MainActivity extends AppCompatActivity
                 currentPosition
                         = new LatLng(location.getLatitude(), location.getLongitude());
 
+                //////////////////////////////////to Firebase//////////////////////////////
+                //userLat=location.getLatitude();
+                //userLong=location.getLongitude();
+
+                //Log.d("UserLatitude",String.valueOf(userLat));
+                //Log.d("UserLongitude",String.valueOf(userLong));
+                /////////////////////////////////////////////////////////////////////////////
+
 
                 String markerTitle = getCurrentAddress(currentPosition);
                 String markerSnippet = "위도:" + String.valueOf(location.getLatitude())
@@ -201,6 +237,22 @@ public class MainActivity extends AppCompatActivity
         }
 
     };
+
+    //////////////////////////////PostFirebaseUser//////////////////////////////////////////
+
+    public void postFirebaseUserInfo(boolean add){
+        Map<String,Object> childUpdates=new HashMap<>();
+        Map<String,Object> postValues=null;
+        if(add){
+            Log.d("UserInformation",userInfo);
+            FirebaseUserInfo post = new FirebaseUserInfo(userInfo);
+            postValues=post.toMap();
+        }
+        childUpdates.put("/user_list/",postValues);
+        mPostReference.updateChildren(childUpdates);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////
 
     private void startLocationUpdates() {
 
